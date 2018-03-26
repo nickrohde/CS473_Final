@@ -120,21 +120,21 @@ void printArgError(const char * s_name)
 int main(int argc, char ** argv)
 {	
 	// Variables:
-	char*     s_pattern = NULL;   // the pattern
-	char**    sa_chunks = NULL;   // the text
+	char*     s_pattern         = NULL;   // the pattern
+	char**    sa_chunks         = NULL;   // the text
 	
-	uint	  ui_result = 0;
+	uint	  ui_result         = 0; // final result being printed to console
 
-	size_t    ui_textLength,      // length of the text to search
-		      ui_patternLength,   // length of the pattern to find
-			  ui_bytesToProcess,  // number of bytes left to process
-			  ui_chunkSize,		  // size of chunks of new data to extract from text
-			  ui_bufferSize,      // actual size of buffer accounting for overlap
-			  ui_numberOfChunks,
-			  ui_numThreads = 0,
-			  ui_overlap, 
-		      ui_firstLength,
-			  ui_lastLength;
+	size_t    ui_textLength     = 0, // length of the text to search
+		  ui_patternLength  = 0, // length of the pattern to find
+		  ui_bytesToProcess = 0, // number of bytes left to process
+		  ui_chunkSize      = 0, // size of chunks of new data to extract from text
+		  ui_bufferSize     = 0, // actual size of buffer accounting for overlap
+		  ui_numberOfChunks = 0, // number of chunks the text is divided into
+		  ui_numThreads     = 0, // number of threads being used to run the algorithm
+		  ui_overlap        = 0, // size of the overlap between chunks
+		  ui_firstLength    = 0, // size of the first chunk
+		  ui_lastLength     = 0; // size of the last  chunk
 
 	// Argument error handling
 	if (argc < 3)
@@ -279,7 +279,7 @@ int main(int argc, char ** argv)
 			{
 				file_text.seekg(ui_chunkSize * (ui_numberOfChunks - 1), ios::beg); // go back (m-1) bytes for overlap
 
-				ui_lastLength = ui_bytesToProcess; // length of last chunk depends on length of text
+				ui_lastLength = ui_bytesToProcess + ui_chunkSize; // length of last chunk depends on length of text
 
 				sa_chunks[ui_numberOfChunks - 1] = new char[ui_lastLength + 1]; // add 1 byte for terminator
 				file_text.read(sa_chunks[ui_numberOfChunks - 1], ui_lastLength);
@@ -293,7 +293,7 @@ int main(int argc, char ** argv)
 
 			size_t len = 0;
 
-			omp_set_dynamic(0);
+			omp_set_dynamic(0); // to avoid omp deciding the # threads to use
 
 			// Get the text in chunks and distribute them to the threads
 			#pragma omp parallel for private(len) reduction(+:ui_result) schedule(guided) num_threads(ui_numThreads)
@@ -312,8 +312,10 @@ int main(int argc, char ** argv)
 					len = ui_lastLength; // last string might be much shorter
 				} // end else
 
-				ui_result += search(sa_chunks[i], (len > 0 ? len-1 : 0), s_pattern, ui_patternLength);
+				ui_result += search(sa_chunks[i], len, s_pattern, ui_patternLength);
 			} // end parallel for
+			
+			cout << "The pattern was found " << ui_result << " times in the text." << endl;
 
 			for (size_t i = 0; i < ui_numberOfChunks; i++)
 			{
@@ -335,9 +337,7 @@ int main(int argc, char ** argv)
 			exit(EXIT_FAILURE);
 		} // end catch
 	} // end else
-
-	//system("pause");
-
+	
 	exit(EXIT_SUCCESS);
 } // end Main                                                                                                          
 
