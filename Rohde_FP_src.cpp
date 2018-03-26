@@ -287,7 +287,7 @@ int main(int argc, char ** argv)
 			} // end if
 			else if(ui_numberOfChunks > 1) // if the remaining bytes < the overlap, then the last string will just be a repeat of the of the the second to last, which can be ignored
 			{                              // the if condition is there to avoid the array being destroyed if there is only 1 thread, in which case the first if statement will fail 
-				sa_chunks[ui_numberOfChunks - 1] = '\0';
+				sa_chunks[ui_numberOfChunks - 1] = NULL;
 				ui_lastLength = 0;
 			} // end elif
 
